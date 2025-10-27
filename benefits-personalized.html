@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 맞춤형 혜택 추천</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .user-select {
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .user-select label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .user-select select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+
+        .user-select button {
+            width: 100%;
+            padding: 15px;
+            margin-top: 15px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .user-select button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .recommendations {
+            padding: 30px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 1.2em;
+            color: #6c757d;
+        }
+
+        .insights {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .insights h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .insights p {
+            color: #856404;
+            line-height: 1.6;
+        }
+
+        .recommendation-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .recommendation-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(180deg); }
+        }
+
+        .rank-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ffd700;
+            color: #333;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.5em;
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+        }
+
+        .recommendation-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            padding-right: 60px;
+        }
+
+        .recommendation-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .recommendation-card .reason {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            line-height: 1.6;
+        }
+
+        .recommendation-card .action-guide {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .recommendation-card .action-guide strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .alternative {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .alternative h3 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+
+        .alternative p {
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .view-calendar {
+            display: block;
+            text-align: center;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .view-calendar:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 맞춤형 혜택 추천</h1>
+            <p>당신의 소비 패턴을 분석하여 최적의 혜택을 추천합니다</p>
+        </header>
+
+        <div class="user-select">
+            <label for="userSelect">👤 사용자 선택:</label>
+            <select id="userSelect">
+                <option value="U001">사용자 1 (쇼핑 선호)</option>
+                <option value="U002">사용자 2 (카페/뷰티 선호)</option>
+            </select>
+            <button onclick="getRecommendations()">🤖 AI 추천 받기</button>
+        </div>
+
+        <div class="recommendations" id="recommendations">
+            <div class="loading">
+                👆 사용자를 선택하고 "AI 추천 받기"를 클릭하세요
+            </div>
+        </div>
+
+        <a href="benefits-calendar.html" class="view-calendar" style="display: none;" id="calendarLink">
+            📅 전체 혜택 캘린더 보기
+        </a>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5678/webhook/benefits/recommend';
+
+        async function getRecommendations() {
+            const userId = document.getElementById('userSelect').value;
+            const recommendations = document.getElementById('recommendations');
+            const calendarLink = document.getElementById('calendarLink');
+
+            recommendations.innerHTML = '<div class="loading">🤖 AI가 분석 중입니다...</div>';
+            calendarLink.style.display = 'none';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        context: 'general'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('AI 추천 API가 아직 설정되지 않았습니다');
+                }
+
+                const data = await response.json();
+                displayRecommendations(data);
+                calendarLink.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error:', error);
+                recommendations.innerHTML = `
+                    <div class="loading">
+                        ⚠️ AI 추천 기능을 사용하려면:<br><br>
+                        1. OpenAI API 키 발급<br>
+                        2. n8n에 워크플로우 7 (AI 추천 API) 임포트<br>
+                        3. OpenAI Credential 설정<br><br>
+                        <small>현재는 전체 혜택 캘린더를 이용해주세요</small>
+                    </div>
+                `;
+                calendarLink.style.display = 'block';
+            }
+        }
+
+        function displayRecommendations(data) {
+            const recommendations = document.getElementById('recommendations');
+            const recs = data.recommendations || [];
+
+            let html = '';
+
+            // 인사이트
+            if (data.insights) {
+                html += `
+                    <div class="insights">
+                        <h3>💡 소비 패턴 분석</h3>
+                        <p>${data.insights}</p>
+                    </div>
+                `;
+            }
+
+            // 추천 혜택
+            html += recs.map((rec, index) => `
+                <div class="recommendation-card">
+                    <div class="rank-badge">${rec.rank}</div>
+                    <h3>${rec.benefitName}</h3>
+                    <div class="value">💰 ${formatKoreanWon(rec.expectedValue)}</div>
+                    
+                    <div class="reason">
+                        <strong>🎯 추천 이유:</strong>
+                        ${rec.reason}
+                    </div>
+
+                    ${rec.actionGuide ? `
+                        <div class="action-guide">
+                            <strong>📋 사용 방법:</strong>
+                            ${rec.actionGuide}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            // 대체 플랜
+            if (data.alternativePlan) {
+                html += `
+                    <div class="alternative">
+                        <h3>🔄 대체 플랜</h3>
+                        <p>${data.alternativePlan}</p>
+                    </div>
+                `;
+            }
+
+            recommendations.innerHTML = html;
+        }
+
+        function formatKoreanWon(value) {
+            if (value >= 10000) {
+                return `${(value / 10000).toFixed(1)}만원`;
+            }
+            return `${value.toLocaleString()}원`;
+        }
+    </script>
+</body>
+</html>
+

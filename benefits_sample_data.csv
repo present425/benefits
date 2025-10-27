@@ -1,0 +1,14 @@
+ID,Provider,Name,Category,StartDate,EndDate,OpenTime,CloseTime,Conditions,DeepLink,Description,Value,Status
+B001,KT,KT멤버십 스타벅스 50% 할인,카페,2025-10-13,2025-10-31,09:00,23:59,VIP등급 이상,kt://membership/benefits/starbucks,스타벅스 아메리카노 50% 할인 (1일 1회),5000,active
+B002,BC카드,페이북 G마켓 최대 10만원 할인,쇼핑,2025-10-15,2025-10-15,10:00,14:00,선착순 1000명 + 최소 10만원 구매,gmarket://event/paybooc2025,G마켓 전품목 즉시할인 (최대 10만원),100000,active
+B003,KT,KT 멤버십 CGV 영화 2천원,영화,2025-10-14,2025-10-20,00:00,23:59,일반/VIP 공통,kt://membership/cgv,CGV 영화 2천원 할인 (1일 1회),2000,active
+B004,BC카드,BC카드 넷플릭스 3개월 무료,OTT,2025-10-13,2025-12-31,00:00,23:59,신규가입자 한정,https://netflix.com/bccard-promo,넷플릭스 스탠다드 요금제 3개월 무료,45000,active
+B005,KT,KT 통신비 10% 할인,통신,2025-10-01,2025-12-31,00:00,23:59,5G 요금제 사용자,kt://billing/discount,월 통신비 10% 자동 할인,15000,active
+B006,G마켓,G마켓 스마일클럽 무료배송,쇼핑,2025-10-13,2025-10-19,00:00,23:59,스마일클럽 회원,gmarket://club/benefit,전품목 무료배송 (주문금액 무관),3000,active
+B007,BC카드,페이북 배달의민족 5천원 쿠폰,배달,2025-10-16,2025-10-16,11:00,14:00,선착순 5000명 + 최소 1.5만원 주문,baemin://paybooc/coupon,배민 즉시할인 쿠폰 5천원,5000,active
+B008,KT,KT 멤버십 GS25 2+1,편의점,2025-10-13,2025-10-27,06:00,23:59,일반 등급 이상,kt://membership/gs25,GS25 음료 2+1 행사,3000,active
+B009,넷플릭스,넷플릭스 신작 시리즈 공개,OTT,2025-10-18,2025-10-18,17:00,23:59,전체 회원,https://netflix.com/new,인기 시리즈 신규 시즌 공개,0,scheduled
+B010,BC카드,BC카드 이마트 10% 청구할인,쇼핑,2025-10-13,2025-10-31,00:00,23:59,BC카드 결제시,https://paybooc.co.kr/emart,이마트 전점 10% 청구할인 (월 1회),50000,active
+B011,KT,KT 멤버십 올리브영 15% 할인,뷰티,2025-10-14,2025-10-21,10:00,22:00,VIP 등급,kt://membership/oliveyoung,올리브영 전품목 15% 할인,20000,active
+B012,G마켓,G마켓 슈퍼세이브데이,쇼핑,2025-10-20,2025-10-20,10:00,23:59,회원 전체,gmarket://supersave,최대 70% 할인 + 무료배송,150000,scheduled
+B013,BC카드,페이북 스타벅스 e-Gift 10% 할인,카페,2025-10-13,2025-10-25,00:00,23:59,BC카드 결제,starbucks://gift/paybooc,스타벅스 기프티콘 10% 할인,5000,active

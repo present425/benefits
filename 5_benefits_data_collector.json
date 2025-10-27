@@ -1,0 +1,401 @@
+{
+  "name": "혜택 데이터 수집 크롤러",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 5 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron_daily",
+      "name": "Daily Trigger (5 AM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        300
+      ],
+      "notes": "매일 오전 5시 (KST) 실행\n크롤링 최적 시간대"
+    },
+    {
+      "parameters": {
+        "url": "https://membership.kt.com/main/MainInfo.do",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http_kt",
+      "name": "HTTP: KT 멤버십",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        200
+      ],
+      "notes": "KT 멤버십 혜택 페이지 크롤링"
+    },
+    {
+      "parameters": {
+        "url": "https://web.paybooc.co.kr/web/evnt/main",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http_bc",
+      "name": "HTTP: BC카드 페이북",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        320
+      ],
+      "notes": "BC카드 페이북 이벤트 페이지 크롤링"
+    },
+    {
+      "parameters": {
+        "url": "https://www.gmarket.co.kr/",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http_gmarket",
+      "name": "HTTP: G마켓",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        440
+      ],
+      "notes": "G마켓 이벤트 페이지 크롤링"
+    },
+    {
+      "parameters": {
+        "url": "https://about.netflix.com/ko/newsroom",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http_netflix",
+      "name": "HTTP: 넷플릭스",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        560
+      ],
+      "notes": "넷플릭스 뉴스룸 크롤링"
+    },
+    {
+      "parameters": {
+        "jsCode": "// KT 멤버십 HTML 파싱\n// 실제 HTML 구조에 맞게 수정 필요\n\nconst items = [];\nconst html = $input.item.json.data || '';\n\n// TODO: 실제 KT 멤버십 페이지의 HTML 구조를 분석하여 파싱 로직 작성\n// 예시: cheerio 라이브러리 사용 또는 정규식 파싱\n\n// 샘플 데이터 구조 (실제 크롤링 데이터로 교체 필요)\nconst sampleBenefit = {\n  id: `KT_${Date.now()}`,\n  provider: 'KT',\n  name: '파싱된 혜택명',\n  category: '카테고리',\n  startDate: new Date().toISOString().split('T')[0],\n  endDate: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],\n  openTime: '09:00',\n  closeTime: '23:59',\n  conditions: '혜택 조건',\n  deepLink: 'kt://membership/benefits',\n  description: '상세 설명',\n  value: 0,\n  status: 'active',\n  crawledAt: new Date().toISOString(),\n  source: 'kt_membership'\n};\n\n// 파싱 로직 예시:\n// if (html.includes('특정 키워드')) {\n//   const matches = html.match(/정규식 패턴/);\n//   if (matches) {\n//     items.push({ json: {...} });\n//   }\n// }\n\n// 임시로 샘플 반환 (실제 파싱 로직 구현 후 제거)\nitems.push({ json: sampleBenefit });\n\nreturn items;"
+      },
+      "id": "code_parse_kt",
+      "name": "Parse KT Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        200
+      ],
+      "notes": "⚠️ 수정 필요: 실제 KT HTML 구조에 맞게 파싱 로직 작성"
+    },
+    {
+      "parameters": {
+        "jsCode": "// BC카드 페이북 HTML 파싱\n// 실제 HTML 구조에 맞게 수정 필요\n\nconst items = [];\nconst html = $input.item.json.data || '';\n\n// TODO: 실제 BC카드 페이북 페이지의 HTML 구조를 분석하여 파싱 로직 작성\n\n// 샘플 데이터 구조\nconst sampleBenefit = {\n  id: `BC_${Date.now()}`,\n  provider: 'BC카드',\n  name: '파싱된 혜택명',\n  category: '카테고리',\n  startDate: new Date().toISOString().split('T')[0],\n  endDate: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],\n  openTime: '00:00',\n  closeTime: '23:59',\n  conditions: '혜택 조건',\n  deepLink: 'https://paybooc.co.kr/event',\n  description: '상세 설명',\n  value: 0,\n  status: 'active',\n  crawledAt: new Date().toISOString(),\n  source: 'bc_paybooc'\n};\n\nitems.push({ json: sampleBenefit });\n\nreturn items;"
+      },
+      "id": "code_parse_bc",
+      "name": "Parse BC Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        320
+      ],
+      "notes": "⚠️ 수정 필요: 실제 BC카드 HTML 구조에 맞게 파싱 로직 작성"
+    },
+    {
+      "parameters": {
+        "jsCode": "// G마켓 HTML 파싱\n// 실제 HTML 구조에 맞게 수정 필요\n\nconst items = [];\nconst html = $input.item.json.data || '';\n\n// TODO: 실제 G마켓 페이지의 HTML 구조를 분석하여 파싱 로직 작성\n\n// 샘플 데이터 구조\nconst sampleBenefit = {\n  id: `GM_${Date.now()}`,\n  provider: 'G마켓',\n  name: '파싱된 혜택명',\n  category: '쇼핑',\n  startDate: new Date().toISOString().split('T')[0],\n  endDate: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0],\n  openTime: '10:00',\n  closeTime: '23:59',\n  conditions: '혜택 조건',\n  deepLink: 'gmarket://event',\n  description: '상세 설명',\n  value: 0,\n  status: 'active',\n  crawledAt: new Date().toISOString(),\n  source: 'gmarket'\n};\n\nitems.push({ json: sampleBenefit });\n\nreturn items;"
+      },
+      "id": "code_parse_gmarket",
+      "name": "Parse GMarket Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        440
+      ],
+      "notes": "⚠️ 수정 필요: 실제 G마켓 HTML 구조에 맞게 파싱 로직 작성"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 넷플릭스 뉴스룸 HTML 파싱\n// 실제 HTML 구조에 맞게 수정 필요\n\nconst items = [];\nconst html = $input.item.json.data || '';\n\n// TODO: 실제 넷플릭스 페이지의 HTML 구조를 분석하여 파싱 로직 작성\n\n// 샘플 데이터 구조\nconst sampleBenefit = {\n  id: `NF_${Date.now()}`,\n  provider: '넷플릭스',\n  name: '파싱된 프로모션명',\n  category: 'OTT',\n  startDate: new Date().toISOString().split('T')[0],\n  endDate: new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0],\n  openTime: '00:00',\n  closeTime: '23:59',\n  conditions: '신규가입자',\n  deepLink: 'https://netflix.com/promo',\n  description: '상세 설명',\n  value: 0,\n  status: 'active',\n  crawledAt: new Date().toISOString(),\n  source: 'netflix_newsroom'\n};\n\nitems.push({ json: sampleBenefit });\n\nreturn items;"
+      },
+      "id": "code_parse_netflix",
+      "name": "Parse Netflix Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        560
+      ],
+      "notes": "⚠️ 수정 필요: 실제 넷플릭스 HTML 구조에 맞게 파싱 로직 작성"
+    },
+    {
+      "parameters": {},
+      "id": "merge_all",
+      "name": "Merge All Benefits",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        900,
+        380
+      ],
+      "notes": "모든 소스의 혜택 데이터 병합"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 중복 제거 및 데이터 정제\nconst items = $input.all();\nconst uniqueBenefits = new Map();\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // ID 기반 중복 제거\n  if (!uniqueBenefits.has(data.id)) {\n    // 데이터 검증 및 정제\n    const cleanedData = {\n      id: data.id || `UNKNOWN_${Date.now()}`,\n      provider: data.provider || 'Unknown',\n      name: data.name || '제목 없음',\n      category: data.category || '기타',\n      startDate: data.startDate || new Date().toISOString().split('T')[0],\n      endDate: data.endDate || new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],\n      openTime: data.openTime || '00:00',\n      closeTime: data.closeTime || '23:59',\n      conditions: data.conditions || '',\n      deepLink: data.deepLink || '',\n      description: data.description || '',\n      value: parseInt(data.value) || 0,\n      status: data.status || 'active',\n      crawledAt: data.crawledAt || new Date().toISOString(),\n      source: data.source || 'unknown'\n    };\n    \n    uniqueBenefits.set(data.id, cleanedData);\n  }\n}\n\n// Map을 배열로 변환\nconst result = Array.from(uniqueBenefits.values()).map(benefit => ({\n  json: benefit\n}));\n\nconsole.log(`총 ${result.length}개의 고유한 혜택 데이터 수집`);\n\nreturn result;"
+      },
+      "id": "code_dedupe",
+      "name": "Deduplicate & Clean",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        380
+      ],
+      "notes": "중복 제거 및 데이터 정제"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1bxVmRx_dIaQVIxkFEGGEErWDGwJ-XckETNNV6rLlRps",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Benefits",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $json.id }}",
+            "Provider": "={{ $json.provider }}",
+            "Name": "={{ $json.name }}",
+            "Category": "={{ $json.category }}",
+            "StartDate": "={{ $json.startDate }}",
+            "EndDate": "={{ $json.endDate }}",
+            "OpenTime": "={{ $json.openTime }}",
+            "CloseTime": "={{ $json.closeTime }}",
+            "Conditions": "={{ $json.conditions }}",
+            "DeepLink": "={{ $json.deepLink }}",
+            "Description": "={{ $json.description }}",
+            "Value": "={{ $json.value }}",
+            "Status": "={{ $json.status }}"
+          }
+        },
+        "options": {
+          "dataLocationOnSheet": "A1",
+          "useAppend": false
+        }
+      },
+      "id": "sheets_save",
+      "name": "Google Sheets: Save Benefits",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        380
+      ],
+      "notes": "⚠️ 수정 필요: YOUR_SPREADSHEET_ID_HERE를 실제 스프레드시트 ID로 교체\n\nGoogle Sheets credentials 설정 필요",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 크롤링 결과 요약\nconst items = $input.all();\nconst summary = {\n  totalBenefits: items.length,\n  byProvider: {},\n  byCategory: {},\n  timestamp: new Date().toISOString(),\n  status: 'success'\n};\n\nitems.forEach(item => {\n  const data = item.json;\n  \n  // Provider별 집계\n  summary.byProvider[data.provider] = (summary.byProvider[data.provider] || 0) + 1;\n  \n  // Category별 집계\n  summary.byCategory[data.category] = (summary.byCategory[data.category] || 0) + 1;\n});\n\nconsole.log('=== 크롤링 완료 ===');\nconsole.log(`총 수집 혜택: ${summary.totalBenefits}개`);\nconsole.log('제공사별:', summary.byProvider);\nconsole.log('카테고리별:', summary.byCategory);\n\nreturn [{ json: summary }];"
+      },
+      "id": "code_summary",
+      "name": "Generate Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        380
+      ],
+      "notes": "크롤링 결과 요약 및 로그"
+    }
+  ],
+  "connections": {
+    "Daily Trigger (5 AM)": {
+      "main": [
+        [
+          {
+            "node": "HTTP: KT 멤버십",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP: BC카드 페이북",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP: G마켓",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP: 넷플릭스",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: KT 멤버십": {
+      "main": [
+        [
+          {
+            "node": "Parse KT Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: BC카드 페이북": {
+      "main": [
+        [
+          {
+            "node": "Parse BC Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: G마켓": {
+      "main": [
+        [
+          {
+            "node": "Parse GMarket Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: 넷플릭스": {
+      "main": [
+        [
+          {
+            "node": "Parse Netflix Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse KT Data": {
+      "main": [
+        [
+          {
+            "node": "Merge All Benefits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse BC Data": {
+      "main": [
+        [
+          {
+            "node": "Merge All Benefits",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Parse GMarket Data": {
+      "main": [
+        [
+          {
+            "node": "Merge All Benefits",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Parse Netflix Data": {
+      "main": [
+        [
+          {
+            "node": "Merge All Benefits",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge All Benefits": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate & Clean",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deduplicate & Clean": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Save Benefits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets: Save Benefits": {
+      "main": [
+        [
+          {
+            "node": "Generate Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-10-13T00:00:00.000Z",
+  "versionId": "1"
+}
+

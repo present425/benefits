@@ -1,0 +1,226 @@
+{
+  "name": "혜택 캘린더 API (MVP)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "benefits/calendar",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook_calendar",
+      "name": "Webhook: GET /benefits/calendar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        400
+      ],
+      "webhookId": "benefits-calendar-api",
+      "notes": "혜택 캘린더 조회 API 엔드포인트\n\nQuery Parameters:\n- period: week | month (기본: week)\n- userId: 사용자 ID (선택)\n- category: 카테고리 필터 (선택)\n- startDate: 시작일 YYYY-MM-DD (선택)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Query 파라미터 파싱 및 검증\nconst query = $input.item.json.query || {};\n\n// 기본값 설정\nconst params = {\n  period: query.period || 'week',\n  userId: query.userId || null,\n  category: query.category || null,\n  startDate: query.startDate || new Date().toISOString().split('T')[0]\n};\n\n// 날짜 계산\nconst start = new Date(params.startDate);\nlet end = new Date(start);\n\nif (params.period === 'month') {\n  end.setDate(end.getDate() + 30);\n} else {\n  end.setDate(end.getDate() + 7);\n}\n\nparams.endDate = end.toISOString().split('T')[0];\n\n// 검증 로그\nconsole.log('=== API Request Params ===');\nconsole.log(`Period: ${params.period}`);\nconsole.log(`Date Range: ${params.startDate} ~ ${params.endDate}`);\nif (params.userId) console.log(`User ID: ${params.userId}`);\nif (params.category) console.log(`Category: ${params.category}`);\n\nreturn [{ json: params }];"
+      },
+      "id": "code_parse_params",
+      "name": "Parse Query Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        400
+      ],
+      "notes": "Query 파라미터 파싱 및 날짜 범위 계산"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "1bxVmRx_dIaQVIxkFEGGEErWDGwJ-XckETNNV6rLlRps",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Benefits",
+          "mode": "name"
+        },
+        "options": {
+          "dataLocationOnSheet": "A1"
+        }
+      },
+      "id": "sheets_read",
+      "name": "Google Sheets: Read Benefits",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        400
+      ],
+      "notes": "⚠️ 수정 필요: YOUR_SPREADSHEET_ID_HERE를 실제 스프레드시트 ID로 교체",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 혜택 데이터 필터링\nconst params = $node[\"Parse Query Params\"].json;\nconst allBenefits = $input.all();\n\nconst filtered = allBenefits.filter(item => {\n  const benefit = item.json;\n  \n  // 날짜 범위 필터\n  const benefitStart = new Date(benefit.StartDate || benefit.startDate);\n  const benefitEnd = new Date(benefit.EndDate || benefit.endDate);\n  const filterStart = new Date(params.startDate);\n  const filterEnd = new Date(params.endDate);\n  \n  const isInDateRange = benefitEnd >= filterStart && benefitStart <= filterEnd;\n  \n  if (!isInDateRange) return false;\n  \n  // Status 필터 (active 또는 scheduled만)\n  const status = benefit.Status || benefit.status || 'active';\n  if (status === 'expired') return false;\n  \n  // 카테고리 필터\n  if (params.category) {\n    const category = benefit.Category || benefit.category || '';\n    if (category !== params.category) return false;\n  }\n  \n  return true;\n});\n\nconsole.log(`필터링 결과: 전체 ${allBenefits.length}개 중 ${filtered.length}개 선택됨`);\n\nreturn filtered;"
+      },
+      "id": "code_filter",
+      "name": "Filter Benefits",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        400
+      ],
+      "notes": "날짜 범위, 상태, 카테고리 기반 필터링"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 캘린더 형식으로 변환\nconst params = $node[\"Parse Query Params\"].json;\nconst benefits = $input.all();\n\n// 날짜별로 그룹핑\nconst calendar = {};\nconst now = new Date();\n\nbenefits.forEach(item => {\n  const benefit = item.json;\n  \n  // 날짜 정규화\n  const startDate = benefit.StartDate || benefit.startDate;\n  const endDate = benefit.EndDate || benefit.endDate;\n  const openTime = benefit.OpenTime || benefit.openTime || '00:00';\n  const closeTime = benefit.CloseTime || benefit.closeTime || '23:59';\n  \n  // 시작일을 기준으로 그룹핑\n  if (!calendar[startDate]) {\n    calendar[startDate] = [];\n  }\n  \n  // 만료 임박도 계산\n  const endDateTime = new Date(`${endDate}T${closeTime}:00`);\n  const hoursUntilEnd = (endDateTime - now) / (1000 * 60 * 60);\n  \n  let urgencyTag = null;\n  if (hoursUntilEnd < 2 && hoursUntilEnd > 0) {\n    urgencyTag = '🔥 마감임박';\n  } else if (hoursUntilEnd < 24 && hoursUntilEnd > 0) {\n    urgencyTag = '⏰ 오늘마감';\n  } else if (startDate === now.toISOString().split('T')[0]) {\n    urgencyTag = '🆕 오늘오픈';\n  }\n  \n  // 딥링크 생성\n  const deepLink = benefit.DeepLink || benefit.deepLink || '';\n  \n  calendar[startDate].push({\n    id: benefit.ID || benefit.id,\n    provider: benefit.Provider || benefit.provider,\n    name: benefit.Name || benefit.name,\n    category: benefit.Category || benefit.category,\n    startDate: startDate,\n    endDate: endDate,\n    openTime: openTime,\n    closeTime: closeTime,\n    conditions: benefit.Conditions || benefit.conditions || '',\n    deepLink: deepLink,\n    description: benefit.Description || benefit.description || '',\n    value: parseInt(benefit.Value || benefit.value || 0),\n    status: benefit.Status || benefit.status,\n    urgencyTag: urgencyTag,\n    hoursRemaining: Math.round(hoursUntilEnd)\n  });\n});\n\n// 날짜순으로 정렬된 배열로 변환\nconst calendarArray = Object.keys(calendar)\n  .sort()\n  .map(date => ({\n    date: date,\n    dayOfWeek: new Date(date).toLocaleDateString('ko-KR', { weekday: 'short' }),\n    benefitCount: calendar[date].length,\n    benefits: calendar[date].sort((a, b) => {\n      // 긴급도 우선 정렬\n      if (a.urgencyTag && !b.urgencyTag) return -1;\n      if (!a.urgencyTag && b.urgencyTag) return 1;\n      // 가치 높은 순\n      return b.value - a.value;\n    })\n  }));\n\n// 응답 데이터 구성\nconst response = {\n  meta: {\n    period: params.period,\n    startDate: params.startDate,\n    endDate: params.endDate,\n    totalBenefits: benefits.length,\n    category: params.category || 'all',\n    generatedAt: new Date().toISOString()\n  },\n  calendar: calendarArray,\n  summary: {\n    byProvider: {},\n    byCategory: {},\n    totalValue: 0,\n    urgentBenefits: 0\n  }\n};\n\n// 요약 통계 생성\nbenefits.forEach(item => {\n  const benefit = item.json;\n  const provider = benefit.Provider || benefit.provider;\n  const category = benefit.Category || benefit.category;\n  const value = parseInt(benefit.Value || benefit.value || 0);\n  \n  response.summary.byProvider[provider] = (response.summary.byProvider[provider] || 0) + 1;\n  response.summary.byCategory[category] = (response.summary.byCategory[category] || 0) + 1;\n  response.summary.totalValue += value;\n});\n\n// 긴급 혜택 카운트\nresponse.summary.urgentBenefits = calendarArray.reduce((count, day) => {\n  return count + day.benefits.filter(b => b.urgencyTag).length;\n}, 0);\n\nconsole.log('=== 캘린더 생성 완료 ===');\nconsole.log(`총 ${calendarArray.length}일, ${response.meta.totalBenefits}개 혜택`);\nconsole.log(`긴급 혜택: ${response.summary.urgentBenefits}개`);\n\nreturn [{ json: response }];"
+      },
+      "id": "code_format_calendar",
+      "name": "Format Calendar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        400
+      ],
+      "notes": "날짜별 그룹핑, 긴급도 태그, 통계 생성"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "public, max-age=300"
+              }
+            ]
+          },
+          "responseCode": 200
+        }
+      },
+      "id": "respond_success",
+      "name": "Respond: Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1340,
+        400
+      ],
+      "notes": "성공 응답 (200 OK)\n5분 캐싱 적용"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Internal Server Error\", \"message\": $json.message || \"An error occurred\", \"timestamp\": new Date().toISOString() } }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          },
+          "responseCode": 500
+        }
+      },
+      "id": "respond_error",
+      "name": "Respond: Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        600
+      ],
+      "notes": "에러 응답 (500)"
+    }
+  ],
+  "connections": {
+    "Webhook: GET /benefits/calendar": {
+      "main": [
+        [
+          {
+            "node": "Parse Query Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Query Params": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Read Benefits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets: Read Benefits": {
+      "main": [
+        [
+          {
+            "node": "Filter Benefits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Benefits": {
+      "main": [
+        [
+          {
+            "node": "Format Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Calendar": {
+      "main": [
+        [
+          {
+            "node": "Respond: Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "respond_error"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-10-13T00:00:00.000Z",
+  "versionId": "1"
+}
+

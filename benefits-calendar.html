@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎁 혜택 캘린더</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .month-nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .month-nav button {
+            background: white;
+            border: 2px solid #dee2e6;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .month-nav button:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .current-month {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #212529;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9em;
+        }
+
+        .legend-badge {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .calendar-grid {
+            padding: 20px;
+        }
+
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .weekday {
+            text-align: center;
+            font-weight: 600;
+            padding: 10px;
+            color: #6c757d;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .weekday.sunday { color: #dc3545; }
+        .weekday.saturday { color: #007bff; }
+
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+
+        .day-cell {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 120px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .day-cell:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .day-cell.other-month {
+            opacity: 0.3;
+            cursor: default;
+        }
+
+        .day-cell.other-month:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: #e9ecef;
+        }
+
+        .day-cell.today {
+            border-color: #667eea;
+            border-width: 3px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+        }
+
+        .day-cell.has-benefits {
+            background: linear-gradient(135deg, #fff5f5 0%, #fff 100%);
+        }
+
+        .day-number {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #212529;
+            margin-bottom: 8px;
+        }
+
+        .day-cell.sunday .day-number { color: #dc3545; }
+        .day-cell.saturday .day-number { color: #007bff; }
+
+        .benefit-indicators {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .benefit-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+
+        .badge-kt { background: #e74c3c; color: white; }
+        .badge-bc { background: #3498db; color: white; }
+        .badge-gmarket { background: #2ecc71; color: white; }
+        .badge-netflix { background: #e50914; color: white; }
+        .badge-total { background: #667eea; color: white; }
+
+        .urgency-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #dc3545;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.7em;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        /* 모달 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            overflow-y: auto;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .modal-header h2 {
+            font-size: 1.8em;
+        }
+
+        .close-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 2em;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .benefit-item {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+
+        .benefit-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .benefit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .benefit-name {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #212529;
+            flex: 1;
+        }
+
+        .benefit-value {
+            background: #28a745;
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 1em;
+            white-space: nowrap;
+            margin-left: 15px;
+        }
+
+        .benefit-meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .provider-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+
+        .category-badge {
+            background: #6c757d;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+        }
+
+        .benefit-description {
+            margin-top: 10px;
+            color: #495057;
+            line-height: 1.6;
+        }
+
+        .benefit-conditions {
+            margin-top: 8px;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 8px;
+            color: #856404;
+            font-size: 0.9em;
+        }
+
+        .deeplink-btn {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 12px;
+            transition: all 0.2s;
+        }
+
+        .deeplink-btn:hover {
+            background: #5568d3;
+            transform: scale(1.05);
+        }
+
+        .no-benefits {
+            text-align: center;
+            padding: 60px;
+            color: #6c757d;
+            font-size: 1.2em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #6c757d;
+        }
+
+        @media (max-width: 768px) {
+            header h1 { font-size: 1.8em; }
+            .current-month { font-size: 1.3em; }
+            .calendar-header { flex-direction: column; gap: 15px; }
+            .days-grid { gap: 5px; }
+            .day-cell { min-height: 80px; padding: 8px; }
+            .benefit-badge { font-size: 0.65em; padding: 3px 6px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎁 혜택 캘린더</h1>
+            <p>통신사, 카드사 혜택을 한눈에 확인하세요</p>
+        </header>
+
+        <div class="calendar-header">
+            <div class="month-nav">
+                <button onclick="previousMonth()">◀ 이전</button>
+                <div class="current-month" id="currentMonth">2025년 10월</div>
+                <button onclick="nextMonth()">다음 ▶</button>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-badge badge-kt"></div>
+                    <span>KT</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-badge badge-bc"></div>
+                    <span>BC카드</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-badge badge-gmarket"></div>
+                    <span>G마켓</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-badge badge-netflix"></div>
+                    <span>넷플릭스</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="calendar-grid">
+            <div class="weekdays">
+                <div class="weekday sunday">일</div>
+                <div class="weekday">월</div>
+                <div class="weekday">화</div>
+                <div class="weekday">수</div>
+                <div class="weekday">목</div>
+                <div class="weekday">금</div>
+                <div class="weekday saturday">토</div>
+            </div>
+            <div class="days-grid" id="daysGrid">
+                <div class="loading">📅 캘린더를 불러오는 중...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 -->
+    <div class="modal" id="benefitModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalDate">10월 13일 (월)</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- 동적으로 채워짐 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5678/webhook/benefits/calendar';
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth();
+        let benefitsData = {};
+
+        // 페이지 로드 시 실행
+        window.addEventListener('DOMContentLoaded', () => {
+            loadCalendar();
+        });
+
+        async function loadCalendar() {
+            try {
+                // 현재 월의 1일부터 말일까지 조회
+                const startDate = new Date(currentYear, currentMonth, 1);
+                const endDate = new Date(currentYear, currentMonth + 1, 0);
+                
+                const url = `${API_URL}?period=month&startDate=${formatDateISO(startDate)}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) throw new Error('API 호출 실패');
+                
+                const data = await response.json();
+                benefitsData = groupBenefitsByDate(data.calendar);
+                
+                renderCalendar();
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('daysGrid').innerHTML = `
+                    <div class="loading">
+                        ❌ 혜택 정보를 불러올 수 없습니다.<br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+            }
+        }
+
+        function groupBenefitsByDate(calendar) {
+            const grouped = {};
+            calendar.forEach(day => {
+                grouped[day.date] = day.benefits;
+            });
+            return grouped;
+        }
+
+        function renderCalendar() {
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const prevLastDay = new Date(currentYear, currentMonth, 0);
+            
+            const firstDayOfWeek = firstDay.getDay();
+            const lastDate = lastDay.getDate();
+            const prevLastDate = prevLastDay.getDate();
+
+            // 월 표시 업데이트
+            document.getElementById('currentMonth').textContent = 
+                `${currentYear}년 ${currentMonth + 1}월`;
+
+            const daysGrid = document.getElementById('daysGrid');
+            daysGrid.innerHTML = '';
+
+            // 이전 달 마지막 날들
+            for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+                const dayCell = createDayCell(prevLastDate - i, true, false);
+                daysGrid.appendChild(dayCell);
+            }
+
+            // 현재 달 날짜들
+            const today = new Date();
+            for (let day = 1; day <= lastDate; day++) {
+                const isToday = currentYear === today.getFullYear() && 
+                               currentMonth === today.getMonth() && 
+                               day === today.getDate();
+                const dayCell = createDayCell(day, false, isToday);
+                daysGrid.appendChild(dayCell);
+            }
+
+            // 다음 달 시작 날들 (42칸 채우기: 6주)
+            const totalCells = 42;
+            const currentCells = firstDayOfWeek + lastDate;
+            const nextMonthDays = totalCells - currentCells;
+            
+            for (let day = 1; day <= nextMonthDays; day++) {
+                const dayCell = createDayCell(day, true, false);
+                daysGrid.appendChild(dayCell);
+            }
+        }
+
+        function createDayCell(day, isOtherMonth, isToday) {
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+            
+            if (isOtherMonth) {
+                cell.classList.add('other-month');
+            }
+            if (isToday) {
+                cell.classList.add('today');
+            }
+
+            const dateStr = isOtherMonth ? null : 
+                formatDateISO(new Date(currentYear, currentMonth, day));
+            
+            const benefits = dateStr ? benefitsData[dateStr] : null;
+            const hasBenefits = benefits && benefits.length > 0;
+
+            if (hasBenefits) {
+                cell.classList.add('has-benefits');
+            }
+
+            // 요일 클래스
+            const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+            if (dayOfWeek === 0) cell.classList.add('sunday');
+            if (dayOfWeek === 6) cell.classList.add('saturday');
+
+            cell.innerHTML = `
+                <div class="day-number">${day}</div>
+                ${hasBenefits ? renderBenefitIndicators(benefits) : ''}
+            `;
+
+            if (hasBenefits) {
+                cell.onclick = () => openModal(dateStr, benefits);
+            }
+
+            return cell;
+        }
+
+        function renderBenefitIndicators(benefits) {
+            const providerCount = {};
+            let hasUrgent = false;
+
+            benefits.forEach(b => {
+                const provider = b.provider;
+                providerCount[provider] = (providerCount[provider] || 0) + 1;
+                if (b.urgencyTag) hasUrgent = true;
+            });
+
+            const badges = Object.entries(providerCount).map(([provider, count]) => {
+                const badgeClass = getProviderBadgeClass(provider);
+                return `<div class="benefit-badge ${badgeClass}">${provider} ${count}개</div>`;
+            }).join('');
+
+            const totalBadge = `<div class="benefit-badge badge-total">총 ${benefits.length}개</div>`;
+
+            return `
+                ${hasUrgent ? '<div class="urgency-indicator">🔥</div>' : ''}
+                <div class="benefit-indicators">
+                    ${totalBadge}
+                    ${badges}
+                </div>
+            `;
+        }
+
+        function getProviderBadgeClass(provider) {
+            if (provider.includes('KT')) return 'badge-kt';
+            if (provider.includes('BC') || provider.includes('카드')) return 'badge-bc';
+            if (provider.includes('G마켓')) return 'badge-gmarket';
+            if (provider.includes('넷플릭스')) return 'badge-netflix';
+            return 'badge-total';
+        }
+
+        function openModal(dateStr, benefits) {
+            const date = new Date(dateStr);
+            const modal = document.getElementById('benefitModal');
+            const modalDate = document.getElementById('modalDate');
+            const modalBody = document.getElementById('modalBody');
+
+            const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+            modalDate.textContent = `${date.getMonth() + 1}월 ${date.getDate()}일 (${weekdays[date.getDay()]})`;
+
+            modalBody.innerHTML = benefits.map(benefit => `
+                <div class="benefit-item">
+                    <div class="benefit-header">
+                        <div class="benefit-name">
+                            ${benefit.urgencyTag ? `<span style="color: #dc3545; margin-right: 5px;">${benefit.urgencyTag}</span>` : ''}
+                            ${benefit.name}
+                        </div>
+                        <div class="benefit-value">💰 ${formatKoreanWon(benefit.value)}</div>
+                    </div>
+                    <div class="benefit-meta">
+                        <span class="provider-badge ${getProviderBadgeClass(benefit.provider)}">
+                            ${benefit.provider}
+                        </span>
+                        <span class="category-badge">
+                            ${getCategoryIcon(benefit.category)} ${benefit.category}
+                        </span>
+                        <span style="color: #6c757d;">⏰ ${benefit.openTime} ~ ${benefit.closeTime}</span>
+                        ${benefit.hoursRemaining >= 0 ? 
+                            `<span style="color: #dc3545; font-weight: 600;">⌛ ${benefit.hoursRemaining}시간 남음</span>` : ''}
+                    </div>
+                    ${benefit.description ? 
+                        `<div class="benefit-description">${benefit.description}</div>` : ''}
+                    ${benefit.conditions ? 
+                        `<div class="benefit-conditions">📋 ${benefit.conditions}</div>` : ''}
+                    ${benefit.deepLink ? 
+                        `<a href="${benefit.deepLink}" class="deeplink-btn" target="_blank">🔗 혜택 사용하기</a>` : ''}
+                </div>
+            `).join('');
+
+            modal.classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('benefitModal').classList.remove('show');
+        }
+
+        // 모달 외부 클릭 시 닫기
+        document.getElementById('benefitModal').addEventListener('click', (e) => {
+            if (e.target.id === 'benefitModal') {
+                closeModal();
+            }
+        });
+
+        // ESC 키로 모달 닫기
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        function previousMonth() {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            loadCalendar();
+        }
+
+        function nextMonth() {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            loadCalendar();
+        }
+
+        function formatDateISO(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                '카페': '☕',
+                '쇼핑': '🛍️',
+                '영화': '🎬',
+                'OTT': '📺',
+                '통신': '📱',
+                '배달': '🍔',
+                '편의점': '🏪',
+                '뷰티': '💄'
+            };
+            return icons[category] || '🎁';
+        }
+
+        function formatKoreanWon(value) {
+            if (value >= 10000) {
+                return `${(value / 10000).toFixed(1)}만원`;
+            }
+            return `${value.toLocaleString()}원`;
+        }
+    </script>
+</body>
+</html>
