@@ -1,0 +1,329 @@
+{
+  "name": "My workflow 6",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "benefits/recommend",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "aa76f1de-c756-4e24-bc30-d6772217466f",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        96,
+        480
+      ],
+      "webhookId": "benefits-recommend-v2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Webhook 또는 Manual Trigger 모두 지원\nconst inputData = $input.item.json;\n\nlet userId = 'U001';\nlet context = 'general';\n\nconsole.log('=== Parse Request ===');\nconsole.log('Input data keys:', Object.keys(inputData));\n\n// GET 요청: query parameter에서 읽기\nif (inputData.query) {\n  userId = inputData.query.userId || 'U001';\n  context = inputData.query.context || 'general';\n  console.log('✓ GET request - query params');\n}\n// POST 요청: body에서 읽기\nelse if (inputData.body) {\n  userId = inputData.body.userId || 'U001';\n  context = inputData.body.context || 'general';\n  console.log('✓ POST request - body');\n} \n// Manual Trigger 또는 직접 입력\nelse if (inputData.userId) {\n  userId = inputData.userId;\n  context = inputData.context || 'general';\n  console.log('✓ Manual trigger - direct input');\n}\n\nconsole.log('User ID:', userId);\nconsole.log('Context:', context);\n\nreturn [{ json: {\n  userId: userId,\n  context: context,\n  requestedAt: new Date().toISOString()\n}}];"
+      },
+      "id": "f06715e4-b275-475e-89f6-1196f5cfab48",
+      "name": "Parse Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1bxVmRx_dIaQVIxkFEGGEErWDGwJ-XckETNNV6rLlRps",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "UserPayments",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "90439726-0e96-4d5c-83d2-5819cb735082",
+      "name": "UserPayments",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [
+        528,
+        368
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ywsppYYqunAvUTXn",
+          "name": "혜택 통합 관리 시스템 DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1bxVmRx_dIaQVIxkFEGGEErWDGwJ-XckETNNV6rLlRps",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Benefits",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "f55ef2b2-ccbd-4584-a4c7-b3e694dbb789",
+      "name": "Benefits",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [
+        528,
+        576
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ywsppYYqunAvUTXn",
+          "name": "혜택 통합 관리 시스템 DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "options": {}
+      },
+      "id": "c33cbd34-c7cf-4b8d-84aa-9e274b156a77",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        752,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge 노드에서 합쳐진 모든 데이터 가져오기\nconst items = $input.all();\n\nconsole.log('=== Build AI Prompt Start ===');\nconsole.log('Total items received:', items.length);\n\n// 1. 요청 파라미터 찾기 (userId, context)\nlet params = { userId: 'U001', context: 'general' };\nfor (const item of items) {\n  const json = item.json;\n  if (json.userId && json.context && json.requestedAt) {\n    params = json;\n    console.log('✓ Found params:', params.userId, params.context);\n    break;\n  }\n}\n\n// 2. 사용자 결제 이력 수집 (UserPayments 시트)\nconst allPayments = [];\nfor (const item of items) {\n  const json = item.json;\n  if (json.PaymentID || json.UserID) {\n    allPayments.push(json);\n  }\n}\nconsole.log('✓ Total payments found:', allPayments.length);\n\n// 3. 혜택 정보 수집 (Benefits 시트)\nconst allBenefits = [];\nfor (const item of items) {\n  const json = item.json;\n  if (json.BenefitID || json.ID || (json.Provider && json.Name)) {\n    allBenefits.push(json);\n  }\n}\nconsole.log('✓ Total benefits found:', allBenefits.length);\n\n// 4. 특정 사용자의 결제 이력만 필터링\nconst userPayments = allPayments.filter(p => {\n  const uid = p.UserID || p.userID || '';\n  return uid === params.userId;\n});\nconsole.log(`✓ User ${params.userId} payments:`, userPayments.length);\n\n// 5. 현재 활성 혜택만 필터링\nconst today = new Date().toISOString().split('T')[0];\nconst activeBenefits = allBenefits.filter(b => {\n  const status = (b.Status || 'active').toLowerCase();\n  const start = b.StartDate || '2024-01-01';\n  const end = b.EndDate || '2025-12-31';\n  return status === 'active' && start <= today && end >= today;\n});\nconsole.log('✓ Active benefits:', activeBenefits.length);\n\n// 6. 사용자 소비 패턴 분석\nconst categorySpending = {};\nlet totalSpent = 0;\n\nuserPayments.forEach(payment => {\n  const category = payment.Category || payment.category || '기타';\n  const amount = parseInt(payment.Amount || payment.amount || 0);\n  \n  if (!categorySpending[category]) {\n    categorySpending[category] = 0;\n  }\n  categorySpending[category] += amount;\n  totalSpent += amount;\n});\n\n// 7. 상위 3개 소비 카테고리 추출\nconst topCategories = Object.entries(categorySpending)\n  .sort(([, a], [, b]) => b - a)\n  .slice(0, 3)\n  .map(([category, amount]) => ({ category, amount }));\n\nconsole.log('✓ Top categories:', topCategories.map(t => t.category).join(', '));\nconsole.log('✓ Total spent:', totalSpent.toLocaleString(), '원');\n\n// 8. AI 프롬프트 생성\nlet prompt = `당신은 금융 혜택 추천 전문가입니다. 사용자의 결제 이력을 분석하여 가장 적합한 혜택 TOP 3를 추천해주세요.\\n\\n`;\n\nprompt += `## 사용자 정보\\n`;\nprompt += `- 사용자 ID: ${params.userId}\\n`;\nprompt += `- 상황: ${params.context}\\n`;\nprompt += `- 총 결제 금액: ${totalSpent.toLocaleString()}원\\n`;\n\nif (topCategories.length > 0) {\n  prompt += `- 주요 소비 카테고리:\\n`;\n  topCategories.forEach(({ category, amount }) => {\n    prompt += `  * ${category}: ${amount.toLocaleString()}원\\n`;\n  });\n} else {\n  prompt += `- 결제 이력이 없습니다.\\n`;\n}\n\nprompt += `\\n## 사용 가능한 혜택 (${activeBenefits.length}개)\\n`;\nactiveBenefits.slice(0, 12).forEach((benefit, index) => {\n  const name = benefit.Name || benefit.name || '이름없음';\n  const provider = benefit.Provider || benefit.provider || '제공사없음';\n  const category = benefit.Category || benefit.category || '미분류';\n  const value = parseInt(benefit.Value || benefit.value || 0);\n  const conditions = benefit.Conditions || benefit.conditions || '조건없음';\n  \n  prompt += `${index + 1}. [${provider}] ${name}\\n`;\n  prompt += `   카테고리: ${category} | 가치: ${value.toLocaleString()}원\\n`;\n  prompt += `   조건: ${conditions}\\n\\n`;\n});\n\nprompt += `## 요청사항\\n`;\nprompt += `위 정보를 바탕으로 사용자에게 가장 적합한 혜택 TOP 3를 추천해주세요.\\n\\n`;\nprompt += `**반드시 아래 JSON 형식으로만 응답하세요:**\\n\\n`;\nprompt += `{\\n`;\nprompt += `  \"recommendations\": [\\n`;\nprompt += `    {\\n`;\nprompt += `      \"rank\": 1,\\n`;\nprompt += `      \"benefitName\": \"혜택 이름\",\\n`;\nprompt += `      \"reason\": \"추천 이유 (50자 이내)\",\\n`;\nprompt += `      \"expectedValue\": 예상절감금액(숫자),\\n`;\nprompt += `      \"actionGuide\": \"사용 방법 안내 (50자 이내)\"\\n`;\nprompt += `    }\\n`;\nprompt += `  ],\\n`;\nprompt += `  \"alternativePlan\": \"1순위 혜택 마감 시 대체 플랜 (50자 이내)\",\\n`;\nprompt += `  \"insights\": \"사용자 소비 패턴 분석 (50자 이내)\"\\n`;\nprompt += `}\\n\\n`;\nprompt += `**중요: JSON 형식만 응답하고 다른 설명은 포함하지 마세요.**`;\n\nconsole.log('✅ AI Prompt generated successfully');\nconsole.log('Prompt length:', prompt.length, 'characters');\n\n// 9. 결과 반환\nreturn [{\n  json: {\n    prompt: prompt,\n    userId: params.userId,\n    context: params.context,\n    totalSpent: totalSpent,\n    topCategories: topCategories.map(t => t.category),\n    paymentCount: userPayments.length,\n    benefitCount: activeBenefits.length\n  }\n}];"
+      },
+      "id": "5fd9e4e0-ff22-4c69-a39d-ff180e71ed8e",
+      "name": "Build AI Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "content": "금융 혜택 추천 전문가입니다. JSON 형식으로만 응답합니다.",
+              "role": "system"
+            },
+            {
+              "content": "={{ $json.prompt }}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 1000,
+          "temperature": 0.7
+        }
+      },
+      "id": "4ad938e1-1a6f-42f9-af7c-e15faee46abc",
+      "name": "OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.5,
+      "position": [
+        1168,
+        480
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "bD3gdPuzKjJD3YHl",
+          "name": "OpenAI Benefits System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentItem = $input.item.json;\nconst previousNode = $node[\"Build AI Prompt\"].json;\n\nconst userId = previousNode.userId || 'U001';\nconst context = previousNode.context || 'general';\nconst totalSpent = previousNode.totalSpent || 0;\nconst topCategories = previousNode.topCategories || [];\nconst paymentCount = previousNode.paymentCount || 0;\nconst benefitCount = previousNode.benefitCount || 0;\n\nconsole.log('=== Parse AI v2 Start ===');\n\ntry {\n  let rawText = '';\n  \n  // Step 1: content 필드 직접 추출\n  if (currentItem.content) {\n    rawText = currentItem.content;\n    console.log('✓ Found content field');\n  } else if (currentItem.output) {\n    rawText = currentItem.output;\n  } else if (currentItem.text) {\n    rawText = currentItem.text;\n  } else {\n    rawText = JSON.stringify(currentItem);\n  }\n  \n  // Step 2: 문자열로 변환\n  rawText = String(rawText);\n  console.log('Raw text length:', rawText.length);\n  console.log('Raw text preview:', rawText.substring(0, 100));\n  \n  // Step 3: JSON 추출 (정규표현식)\n  let jsonText = rawText;\n  \n  // 마크다운 코드 블록 제거\n  const codeBlockMatch = rawText.match(/```(?:json)?\\s*([\\s\\S]*?)```/);\n  if (codeBlockMatch) {\n    jsonText = codeBlockMatch[1].trim();\n    console.log('✓ Removed markdown code block');\n  }\n  \n  // JSON 객체 추출\n  const jsonMatch = jsonText.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    jsonText = jsonMatch[0];\n    console.log('✓ Extracted JSON object');\n  }\n  \n  console.log('Final JSON text:', jsonText.substring(0, 200));\n  \n  // Step 4: JSON 파싱\n  const parsed = JSON.parse(jsonText);\n  console.log('✓ JSON parsed');\n  console.log('Recommendations found:', parsed.recommendations?.length || 0);\n  \n  // Step 5: 응답 구성\n  return [{\n    json: {\n      userId,\n      context,\n      recommendations: parsed.recommendations || [],\n      alternativePlan: parsed.alternativePlan || '다른 혜택을 확인하세요',\n      insights: parsed.insights || '분석 완료',\n      metadata: {\n        totalSpent,\n        topCategories,\n        paymentCount,\n        benefitCount\n      },\n      generatedAt: new Date().toISOString(),\n      _debug: {\n        jsonTextPreview: jsonText.substring(0, 300),\n        recommendationsCount: parsed.recommendations?.length || 0\n      }\n    }\n  }];\n  \n} catch (error) {\n  console.error('Parse error:', error.message);\n  return [{\n    json: {\n      userId,\n      context,\n      recommendations: [],\n      alternativePlan: '파싱 오류',\n      insights: error.message,\n      metadata: { totalSpent, topCategories, paymentCount, benefitCount },\n      generatedAt: new Date().toISOString(),\n      error: true,\n      _debug: {\n        errorMessage: error.message,\n        rawResponse: JSON.stringify(currentItem).substring(0, 500)\n      }\n    }\n  }];\n}"
+      },
+      "id": "35febc90-0459-4df2-8a53-385727898542",
+      "name": "Parse AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "299cc2ab-151e-4082-9c91-a3a81b6ccc27",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1616,
+        480
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        80,
+        624
+      ],
+      "id": "cce337ca-3dbe-4993-b8b1-6631531166eb",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Request": {
+      "main": [
+        [
+          {
+            "node": "UserPayments",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Benefits",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "UserPayments": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Build AI Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build AI Prompt": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Parse AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Parse Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Benefits": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b503c282-1c91-473d-8521-5b4e4d3af552",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "38a6709a2813660e4187e8038fbb68ae53a96f70caf259292b8d440b78d0c995"
+  },
+  "id": "GPQhDt5y6Q21nO7n",
+  "tags": []
+}
